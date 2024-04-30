@@ -1,73 +1,73 @@
 <template>
-  <v-container>
-    <h1>Radio</h1>
-    <v-row>
-      <v-col v-for="(radio, index) in radios" :key="index" cols="12" sm="6" md="4">
-        <v-card class="radio-card">
-          <v-row no-gutters>
-            <v-col cols="8">
-              <v-card-title>{{ radio.name }}</v-card-title>
-              <v-card-text>
-                <!-- Aggiungi altri dettagli della radio se necessario -->
-                <p>{{ radio.codec }}</p>
-                <p>{{ radio.bitrate }}</p>
-                <!-- E così via -->
-              </v-card-text>
-            </v-col>
-            <v-col cols="4">
-              <v-img :src="getFaviconUrl(radio)" aspect-ratio="1/1"></v-img>
-            </v-col>
-          </v-row>
-          <v-row no-gutters>
-            <v-col cols="12">
-              <div class="text-center">
-                <v-btn :style="{ marginRight: display.mdAndUp.value ? '5px' : '0' }" icon @click="playRadio(radio)">
-                  <v-icon>mdi-play</v-icon>
-                </v-btn>
+  <div class="radio-wrapper">
+    <v-container>
+      <h1 style="color: white;">Radio</h1>
+      <br>
+      <!-- Search bar -->
+      <v-text-field
+        v-model="Cerca"
+        label="Cerca"
+        prepend-inner-icon="mdi-magnify"
+        variant="outlined"
+        hide-details
+        single-line
+        @input="filterRadios"
+      ></v-text-field>
 
-                <v-btn :style="{ marginLeft: display.mdAndUp.value ? '5px' : '0' }" icon @click="stopRadio">
-                  <v-icon>mdi-stop</v-icon>
-                </v-btn>
-              </div>
-            </v-col>
-          </v-row>
-        </v-card>
-      </v-col>
-    </v-row>
+      <v-row>
+        <v-col v-for="(radio, index) in filteredRadios" :key="index" cols="12" sm="6" md="4">
+          <v-card class="radio-card">
+            <v-row no-gutters>
+              <v-col cols="8">
+                <v-card-title>{{ radio.name }}</v-card-title>
+                <v-card-text>
+                  <!-- Add other radio details if necessary -->
+                  <p>{{ radio.codec }}</p>
+                  <p>{{ radio.bitrate }}</p>
+                </v-card-text>
+              </v-col>
+              <v-col cols="4">
+                <a :href="radio.homepage" target="_blank">
+                  <v-img :src="getFaviconUrl(radio)" aspect-ratio="1/1" style="margin: 10px;"></v-img>
+                </a>
+              </v-col>
+            </v-row>
+            <v-row no-gutters>
+              <v-col cols="12">
+                <div class="text-center align-end" style="position: absolute; bottom: 0; width: 100%; margin-bottom: 10px;">
+                  <v-btn :style="{ marginRight: display.mdAndUp.value ? '5px' : '0' }" icon @click="togglePlayPause(radio)" :color="isPlaying(radio) ? 'blue' : ''">
+                    <v-icon v-if="isPlaying(radio)">mdi-pause</v-icon>
+                    <v-icon v-else>mdi-play</v-icon>
+                  </v-btn>
 
-    <!-- Bottom sheet -->
-    <v-bottom-sheet inset v-model="sheet">
-      <v-sheet v-if="selectedRadio && audio"
-        style="position: fixed; bottom: 0; width: 100%; background-color: rgba(255, 255, 255, 0.9);">
-        <v-list>
-          <v-list-item>
-            <v-list-item-title>{{ selectedRadio.name }}</v-list-item-title>
-            <v-list-item-subtitle>{{ selectedRadio.name }}</v-list-item-subtitle>
-            <template v-slot:append>
-              <!-- Bottone per mettere in pausa/riprendere la riproduzione -->
-              <!--<v-btn :style="{ marginRight: display.mdAndUp.value ? '5px' : '0' }" icon="mdi-pause" variant="text" @click="toggleAudioPlayback"></v-btn>-->
-              <!-- Bottone per fermare la riproduzione -->
-              <v-btn :style="{ marginLeft: display.mdAndUp.value ? '5px' : '0' }" icon="mdi-stop" variant="text"
-                @click="stopRadio"></v-btn>
-            </template>
-          </v-list-item>
-        </v-list>
-      </v-sheet>
-    </v-bottom-sheet>
-
-
-
-  </v-container>
+                  <v-btn :style="{ marginLeft: display.mdAndUp.value ? '5px' : '0' }" icon @click="stopRadio" :color="isPlaying(radio) ? 'blue' : ''">
+                    <v-icon>mdi-stop</v-icon>
+                  </v-btn>
+                </div>
+              </v-col>
+            </v-row>
+          </v-card>
+        </v-col>
+      </v-row>
+    </v-container>
+  </div>
 </template>
 
 <script>
 import { useDisplay } from 'vuetify';
+import Hls from 'hls.js';
+import VueCoreVideoPlayer from 'vue-core-video-player';
 
 export default {
   name: 'HomeView',
+  components:{
+    VueCoreVideoPlayer,
+  },
   data() {
     return {
       radios: [],
+      filteredRadios: [], // Add filteredRadios array
+      search: '', // Add search property
       audio: null,
       sheet: false,
       selectedRadio: null
@@ -79,29 +79,59 @@ export default {
         .then(response => response.json())
         .then(data => {
           this.radios = data;
+          this.filteredRadios = data; // Initialize filteredRadios with all radios
           console.log(data);
         });
     },
     getFaviconUrl(radio) {
-      return radio.favicon || '/radio.png'; // Restituisce il percorso dell'immagine predefinita se favicon non è disponibile
+      return radio.favicon || '/radio.png'; // Return the default image path if favicon is not available
     },
     playRadio(radio) {
-      if (this.audio) {
-        this.stopRadio();
+      if (this.audio) 
+      {
+    this.stopRadio();
+  }
+  if (radio.hls === 1) {
+        console.log('Using HLS player for M3U8 format');
+        this.audio = null; // Remove existing audio element
+        this.selectedRadio = radio; // Set the selected radio
+        this.sheet = true; // Show the bottom sheet
+      } else {
+        console.log('Using <audio> element for other formats');
+        this.audio = new Audio(radio.url_resolved);
+        this.audio.play();
+        this.sheet = true; // Show the bottom sheet
+        this.selectedRadio = radio; // Set the selected radio
       }
-      this.audio = new Audio(radio.url_resolved);
-      this.audio.play();
-      this.sheet = true; // Attiva il bottom sheet quando viene avviata la riproduzione
-      this.selectedRadio = radio; // Imposta la stazione radio selezionata
     },
+
+    
     stopRadio() {
       if (this.audio) {
         this.audio.pause();
         this.audio = null;
-        this.sheet = false; // Disattiva il bottom sheet quando viene interrotta la riproduzione
+        this.sheet = false; // Deactivate bottom sheet when playback is stopped
       }
-    }
+    },
+    filterRadios() {
+      if (!this.search) {
+        this.filteredRadios = this.radios; // If search is empty, show all radios
+        return;
+      }
+      this.filteredRadios = this.radios.filter(radio => radio.name.toLowerCase().includes(this.search.toLowerCase()));
+    },
+    togglePlayPause(radio) {
+      if (this.isPlaying(radio)) {
+        this.stopRadio();
+      } else {
+        this.playRadio(radio);
+      }
+    },
+    isPlaying(radio) {
+      return this.selectedRadio === radio && this.audio && !this.audio.paused;
+    },
   },
+
   created() {
     this.getRadios();
   },
@@ -112,9 +142,32 @@ export default {
 }
 </script>
 
+
 <style>
-.radio-card {
-  height: 200px;
-  /* Altezza desiderata per le card */
+body{
+  background-color: white;
 }
+.radio-wrapper {
+  margin-left: 5%;
+  margin-right: 5%;
+  background: rgb(0, 110, 255);
+  border-radius: 20px;
+}
+
+/* Modifica del background */
+.v-text-field {
+  margin-bottom: 20px;
+  border-radius: 20px;
+  border : none;
+  background-color: white;
+}
+
+.v-text-field:hover{
+  animation: none;
+}
+
+.radio-card {
+  height : 170px;
+}
+
 </style>

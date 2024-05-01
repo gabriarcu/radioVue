@@ -27,16 +27,14 @@
                       <v-icon v-else>mdi-heart-outline</v-icon>
                     </v-btn>
 
-
                     <!--bottone pause-->
                     <v-btn class="mr-2" icon @click="togglePlayPause(radio)" :color="isPlaying(radio) ? 'blue' : ''">
                       <v-icon v-if="isPlaying(radio)">mdi-pause</v-icon>
                       <v-icon v-else>mdi-play</v-icon>
                     </v-btn>
 
-
-                    <!--Bottne stop-->
-                    <v-btn icon @click="stopRadio" :color="isPlaying(radio) ? 'blue' : ''">
+                    <!--Bottone stop-->
+                    <v-btn icon @click="stopRadio(radio)" :color="isPlaying(radio) ? 'blue' : ''">
                       <v-icon>mdi-stop</v-icon>
                     </v-btn>
 
@@ -53,17 +51,21 @@
         </v-col>
       </v-row>
 
-
-
+      <!-- Aggiungi il componente VideoPlayer per i file M3U8 -->
+      <video-player v-if="selectedRadio && selectedRadio.hls === 1 && !audio" :options="videoOptions" :source="selectedRadio.url" ref="videoPlayer" class="customClassName" />
     </v-container>
   </div>
 </template>
 
 <script>
 import { useDisplay } from 'vuetify';
+import VideoPlayer from 'vue-hls-video-player';
 
 export default {
   name: 'HomeView',
+  components: {
+    VideoPlayer
+  },
   data() {
     return {
       radios: [],
@@ -73,6 +75,11 @@ export default {
       sheet: false,
       selectedRadio: null,
       favorites: [], // Aggiunto per gestire i preferiti
+      videoOptions: {
+        controls: true,
+        autoplay: false,
+        muted: false,
+      },
     }
   },
   methods: {
@@ -88,21 +95,25 @@ export default {
       return radio.favicon || '/image.png';
     },
     playRadio(radio) {
-      if (this.audio) {
-        this.stopRadio();
-      }
-      console.log('Using <audio> element for MP3 format');
-      this.audio = new Audio(radio.url_resolved);
-      this.audio.play();
+      this.stopRadio(); // Interrompi la radio attualmente in riproduzione
       this.sheet = true;
       this.selectedRadio = radio;
+
+      // Se il formato è M3U8, utilizza il VideoPlayer
+      if (radio.hls === 1) {
+        console.log('Using vue-hls-video-player for M3U8 format');
+      } else {
+        console.log('Using <audio> element for MP3 format');
+        this.audio = new Audio(radio.url_resolved); // Crea un nuovo elemento audio
+        this.audio.play();
+      }
     },
     stopRadio() {
-      if (this.audio) {
+      if (this.audio instanceof Audio) {
         this.audio.pause();
-        this.audio = null;
-        this.sheet = false;
+        this.audio = null; // Resetta l'elemento audio
       }
+      this.sheet = false;
     },
     filterRadios() {
       if (!this.search) {
@@ -121,7 +132,6 @@ export default {
     isPlaying(radio) {
       return this.selectedRadio === radio && this.audio && !this.audio.paused;
     },
-
     toggleFavorite(radio) {
       const index = this.favorites.findIndex(fav => fav.url === radio.url);
       if (index !== -1) {
@@ -134,9 +144,7 @@ export default {
     isFavorite(radio) {
       return this.favorites.some(fav => fav.url === radio.url);
     },
-
   },
-
   created() {
     this.getRadios();
     const favorites = localStorage.getItem('favorites');
@@ -150,7 +158,7 @@ export default {
 </script>
 
 <style>
-body{
+body {
   /*background-color: #1B3659;*/
   background-color: #1B3659;
 }
@@ -158,7 +166,7 @@ body{
 .radio-wrapper {
   margin-right: 5%;
   margin-left: 5%;
-  background-color: rgb(3, 162, 202);  
+  background-color: rgb(3, 162, 202);
   border-radius: 20px;
 }
 

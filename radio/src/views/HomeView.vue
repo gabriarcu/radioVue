@@ -4,15 +4,8 @@
       <h1 style="color: white;">Radio</h1>
       <br>
       <!-- Search bar -->
-      <v-text-field
-        v-model="Cerca"
-        label="Cerca"
-        prepend-inner-icon="mdi-magnify"
-        variant="outlined"
-        hide-details
-        single-line
-        @input="filterRadios"
-      ></v-text-field>
+      <v-text-field v-model="search" label="Cerca" prepend-inner-icon="mdi-magnify" variant="outlined" hide-details
+        single-line @input="filterRadios"></v-text-field>
 
       <v-row>
         <v-col v-for="(radio, index) in filteredRadios" :key="index" cols="12" sm="6" md="4">
@@ -22,8 +15,34 @@
                 <v-card-title>{{ radio.name }}</v-card-title>
                 <v-card-text>
                   <!-- Add other radio details if necessary -->
-                  <p>{{ radio.codec }}</p>
-                  <p>{{ radio.bitrate }}</p>
+                  <p>{{ radio.tags }}</p>
+                  <p>{{ radio.country }}</p>
+
+                  <div class="text-center align-end"
+                    style="position: absolute; bottom: 0; width: 60%; margin-bottom: 30px;">
+
+                    <!--Bottone preferiti-->
+                    <v-btn :style="{ marginRight: display.mdAndUp.value ? '10px' : '0' }" icon
+                      @click="toggleFavorite(radio)" :color="isFavorite(radio) ? 'red' : ''">
+                      <v-icon v-if="isFavorite(radio)" :color="isPlaying(radio) ? 'white' : ''">mdi-heart</v-icon>
+                      <v-icon v-else>mdi-heart-outline</v-icon>
+                    </v-btn>
+
+
+                    <!--bottone pause-->
+                    <v-btn :style="{ marginRight: display.mdAndUp.value ? '5px' : '0' }" icon
+                      @click="togglePlayPause(radio)" :color="isPlaying(radio) ? 'blue' : ''">
+                      <v-icon v-if="isPlaying(radio)">mdi-pause</v-icon>
+                      <v-icon v-else>mdi-play</v-icon>
+                    </v-btn>
+
+                    <!--Bottne stop-->
+                    <v-btn :style="{ marginLeft: display.mdAndUp.value ? '5px' : '0' }" icon @click="stopRadio"
+                      :color="isPlaying(radio) ? 'blue' : ''">
+                      <v-icon>mdi-stop</v-icon>
+                    </v-btn>
+
+                  </div>
                 </v-card-text>
               </v-col>
               <v-col cols="4">
@@ -32,45 +51,30 @@
                 </a>
               </v-col>
             </v-row>
-            <v-row no-gutters>
-              <v-col cols="12">
-                <div class="text-center align-end" style="position: absolute; bottom: 0; width: 100%; margin-bottom: 10px;">
-                  <v-btn :style="{ marginRight: display.mdAndUp.value ? '5px' : '0' }" icon @click="togglePlayPause(radio)" :color="isPlaying(radio) ? 'blue' : ''">
-                    <v-icon v-if="isPlaying(radio)">mdi-pause</v-icon>
-                    <v-icon v-else>mdi-play</v-icon>
-                  </v-btn>
-
-                  <v-btn :style="{ marginLeft: display.mdAndUp.value ? '5px' : '0' }" icon @click="stopRadio" :color="isPlaying(radio) ? 'blue' : ''">
-                    <v-icon>mdi-stop</v-icon>
-                  </v-btn>
-                </div>
-              </v-col>
-            </v-row>
           </v-card>
         </v-col>
       </v-row>
+
+
+
     </v-container>
   </div>
 </template>
 
 <script>
 import { useDisplay } from 'vuetify';
-import Hls from 'hls.js';
-import VueCoreVideoPlayer from 'vue-core-video-player';
 
 export default {
   name: 'HomeView',
-  components:{
-    VueCoreVideoPlayer,
-  },
   data() {
     return {
       radios: [],
-      filteredRadios: [], // Add filteredRadios array
-      search: '', // Add search property
+      filteredRadios: [],
+      search: '',
       audio: null,
       sheet: false,
-      selectedRadio: null
+      selectedRadio: null,
+      favorites: [], // Aggiunto per gestire i preferiti
     }
   },
   methods: {
@@ -79,43 +83,32 @@ export default {
         .then(response => response.json())
         .then(data => {
           this.radios = data;
-          this.filteredRadios = data; // Initialize filteredRadios with all radios
-          console.log(data);
+          this.filteredRadios = data;
         });
     },
     getFaviconUrl(radio) {
-      return radio.favicon || '/radio.png'; // Return the default image path if favicon is not available
+      return radio.favicon || '/radio.png';
     },
     playRadio(radio) {
-      if (this.audio) 
-      {
-    this.stopRadio();
-  }
-  if (radio.hls === 1) {
-        console.log('Using HLS player for M3U8 format');
-        this.audio = null; // Remove existing audio element
-        this.selectedRadio = radio; // Set the selected radio
-        this.sheet = true; // Show the bottom sheet
-      } else {
-        console.log('Using <audio> element for other formats');
-        this.audio = new Audio(radio.url_resolved);
-        this.audio.play();
-        this.sheet = true; // Show the bottom sheet
-        this.selectedRadio = radio; // Set the selected radio
+      if (this.audio) {
+        this.stopRadio();
       }
+      console.log('Using <audio> element for MP3 format');
+      this.audio = new Audio(radio.url_resolved);
+      this.audio.play();
+      this.sheet = true;
+      this.selectedRadio = radio;
     },
-
-    
     stopRadio() {
       if (this.audio) {
         this.audio.pause();
         this.audio = null;
-        this.sheet = false; // Deactivate bottom sheet when playback is stopped
+        this.sheet = false;
       }
     },
     filterRadios() {
       if (!this.search) {
-        this.filteredRadios = this.radios; // If search is empty, show all radios
+        this.filteredRadios = this.radios;
         return;
       }
       this.filteredRadios = this.radios.filter(radio => radio.name.toLowerCase().includes(this.search.toLowerCase()));
@@ -130,10 +123,26 @@ export default {
     isPlaying(radio) {
       return this.selectedRadio === radio && this.audio && !this.audio.paused;
     },
+
+    toggleFavorite(radio) {
+      const index = this.favorites.findIndex(fav => fav.url === radio.url);
+      if (index !== -1) {
+        this.favorites.splice(index, 1);
+      } else {
+        this.favorites.push(radio);
+      }
+      localStorage.setItem('favorites', JSON.stringify(this.favorites));
+    },
+    isFavorite(radio) {
+      return this.favorites.some(fav => fav.url === radio.url);
+    },
+
   },
 
   created() {
     this.getRadios();
+    const favorites = localStorage.getItem('favorites');
+    this.favorites = favorites ? JSON.parse(favorites) : [];
   },
   setup() {
     const display = useDisplay();
@@ -142,11 +151,11 @@ export default {
 }
 </script>
 
-
 <style>
-body{
+body {
   background-color: white;
 }
+
 .radio-wrapper {
   margin-left: 5%;
   margin-right: 5%;
@@ -154,20 +163,18 @@ body{
   border-radius: 20px;
 }
 
-/* Modifica del background */
 .v-text-field {
   margin-bottom: 20px;
   border-radius: 20px;
-  border : none;
+  border: none;
   background-color: white;
 }
 
-.v-text-field:hover{
+.v-text-field:hover {
   animation: none;
 }
 
 .radio-card {
-  height : 170px;
+  height: 170px;
 }
-
 </style>

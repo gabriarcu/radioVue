@@ -22,23 +22,21 @@
                     style="position: absolute; bottom: 0; width: 60%; margin-bottom: 30px;">
 
                     <!--Bottone preferiti-->
-                    <v-btn :style="{ marginRight: display.mdAndUp.value ? '10px' : '0' }" icon
-                      @click="toggleFavorite(radio)" :color="isFavorite(radio) ? 'red' : ''">
+                    <v-btn class="mr-2" icon @click="toggleFavorite(radio)" :color="isFavorite(radio) ? 'red' : ''">
                       <v-icon v-if="isFavorite(radio)" :color="isPlaying(radio) ? 'white' : ''">mdi-heart</v-icon>
                       <v-icon v-else>mdi-heart-outline</v-icon>
                     </v-btn>
 
 
                     <!--bottone pause-->
-                    <v-btn :style="{ marginRight: display.mdAndUp.value ? '5px' : '0' }" icon
-                      @click="togglePlayPause(radio)" :color="isPlaying(radio) ? 'blue' : ''">
+                    <v-btn class="mr-2" icon @click="togglePlayPause(radio)" :color="isPlaying(radio) ? 'blue' : ''">
                       <v-icon v-if="isPlaying(radio)">mdi-pause</v-icon>
                       <v-icon v-else>mdi-play</v-icon>
                     </v-btn>
 
+
                     <!--Bottne stop-->
-                    <v-btn :style="{ marginLeft: display.mdAndUp.value ? '5px' : '0' }" icon @click="stopRadio"
-                      :color="isPlaying(radio) ? 'blue' : ''">
+                    <v-btn icon @click="stopRadio" :color="isPlaying(radio) ? 'blue' : ''">
                       <v-icon>mdi-stop</v-icon>
                     </v-btn>
 
@@ -87,7 +85,7 @@ export default {
         });
     },
     getFaviconUrl(radio) {
-      return radio.favicon || '/radio.png';
+      return radio.favicon || '/image.png';
     },
     playRadio(radio) {
       if (this.audio) {
@@ -152,14 +150,15 @@ export default {
 </script>
 
 <style>
-body {
-  background-color: white;
+body{
+  /*background-color: #1B3659;*/
+  background-color: #1B3659;
 }
 
 .radio-wrapper {
-  margin-left: 5%;
   margin-right: 5%;
-  background: rgb(0, 110, 255);
+  margin-left: 5%;
+  background-color: rgb(3, 162, 202);  
   border-radius: 20px;
 }
 
@@ -175,6 +174,6 @@ body {
 }
 
 .radio-card {
-  height: 170px;
+  height: 185px;
 }
 </style>

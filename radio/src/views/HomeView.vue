@@ -52,7 +52,8 @@
       </v-row>
 
       <!-- Aggiungi il componente VideoPlayer per i file M3U8 -->
-      <video-player v-if="selectedRadio && selectedRadio.hls === 1 && !audio" :options="videoOptions" :source="selectedRadio.url" ref="videoPlayer" class="customClassName" />
+      <video-player ref="videoPlayer" v-if="selectedRadio && selectedRadio.hls === 1" :options="videoOptions" class="customClassName" />
+
     </v-container>
   </div>
 </template>
@@ -95,19 +96,26 @@ export default {
       return radio.favicon || '/image.png';
     },
     playRadio(radio) {
-      this.stopRadio(); // Interrompi la radio attualmente in riproduzione
-      this.sheet = true;
-      this.selectedRadio = radio;
+  this.stopRadio(); // Interrompi la radio attualmente in riproduzione
+  this.sheet = true;
+  this.selectedRadio = radio;
 
-      // Se il formato è M3U8, utilizza il VideoPlayer
-      if (radio.hls === 1) {
-        console.log('Using vue-hls-video-player for M3U8 format');
-      } else {
-        console.log('Using <audio> element for MP3 format');
-        this.audio = new Audio(radio.url_resolved); // Crea un nuovo elemento audio
-        this.audio.play();
-      }
-    },
+  // Se il formato è M3U8, utilizza il VideoPlayer
+  if (radio.hls === 1) {
+    console.log('Using vue-hls-video-player for M3U8 format');
+    this.audio = null; // Resetta l'elemento audio
+    // Imposta il VideoPlayer per riprodurre il file M3U8
+    // Assicurati di sostituire 'selectedRadio.previewImageLink' con il percorso dell'immagine di anteprima del radio selezionato
+    // e 'selectedRadio.link' con il percorso del file M3U8 del radio selezionato
+    this.$refs.videoPlayer.load(selectedRadio.previewImageLink, selectedRadio.link);
+    this.$refs.videoPlayer.play();
+  } else {
+    console.log('Using <audio> element for MP3 format');
+    this.audio = new Audio(radio.url_resolved); // Crea un nuovo elemento audio
+    this.audio.play();
+  }
+},
+
     stopRadio() {
       if (this.audio instanceof Audio) {
         this.audio.pause();

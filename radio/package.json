@@ -15,6 +15,7 @@
     "videojs-contrib-hls": "^5.15.0",
     "vue": "^3.2.13",
     "vue-core-video-player": "^0.2.0",
+    "vue-hls-player": "^1.0.6",
     "vue-hls-video-player": "^1.0.1",
     "vue-router": "^4.0.3",
     "vuetify": "^3.5.17"

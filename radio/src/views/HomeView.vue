@@ -1,3 +1,12 @@
+<script setup>
+import { VideoPlayer } from 'vue-hls-video-player';
+
+function processPause(progress) {
+  console.log(progress)
+}
+</script>
+
+
 <template>
   <div class="radio-wrapper">
     <v-container>
@@ -38,6 +47,10 @@
                       <v-icon>mdi-stop</v-icon>
                     </v-btn>
 
+                    <!--PLAYER PER USARE I FILE M3U8-->
+                    <VideoPlayer type="default" @pause="processPause" :link="radio.url" :progress="30" :isMuted="false"
+                      :isControls="true" class="customClassName" v-if="radio.hls == '1'" />
+
                   </div>
                 </v-card-text>
               </v-col>
@@ -52,7 +65,7 @@
       </v-row>
 
       <!-- Aggiungi il componente VideoPlayer per i file M3U8 -->
-      <video-player ref="videoPlayer" v-if="selectedRadio && selectedRadio.hls === 1" :options="videoOptions" class="customClassName" />
+
 
     </v-container>
   </div>
@@ -60,12 +73,12 @@
 
 <script>
 import { useDisplay } from 'vuetify';
-import VideoPlayer from 'vue-hls-video-player';
+//import VideoPlayer from 'vue-hls-video-player';
 
 export default {
   name: 'HomeView',
   components: {
-    VideoPlayer
+    //VideoPlayer
   },
   data() {
     return {
@@ -96,25 +109,21 @@ export default {
       return radio.favicon || '/image.png';
     },
     playRadio(radio) {
-  this.stopRadio(); // Interrompi la radio attualmente in riproduzione
-  this.sheet = true;
-  this.selectedRadio = radio;
+      this.stopRadio(); // Interrompi la radio attualmente in riproduzione
+      this.sheet = true;
+      this.selectedRadio = radio;
 
-  // Se il formato è M3U8, utilizza il VideoPlayer
-  if (radio.hls === 1) {
-    console.log('Using vue-hls-video-player for M3U8 format');
-    this.audio = null; // Resetta l'elemento audio
-    // Imposta il VideoPlayer per riprodurre il file M3U8
-    // Assicurati di sostituire 'selectedRadio.previewImageLink' con il percorso dell'immagine di anteprima del radio selezionato
-    // e 'selectedRadio.link' con il percorso del file M3U8 del radio selezionato
-    this.$refs.videoPlayer.load(selectedRadio.previewImageLink, selectedRadio.link);
-    this.$refs.videoPlayer.play();
-  } else {
-    console.log('Using <audio> element for MP3 format');
-    this.audio = new Audio(radio.url_resolved); // Crea un nuovo elemento audio
-    this.audio.play();
-  }
-},
+      // Se il formato è M3U8, utilizza il VideoPlayer
+      if (radio.hls === 1) {
+        console.log('Using vue-hls-video-player for M3U8 format');
+        console.log(radio.url);
+        this.audio = null; // Resetta l'elemento audio
+      } else {
+        console.log('Using <audio> element for MP3 format');
+        this.audio = new Audio(radio.url_resolved); // Crea un nuovo elemento audio
+        this.audio.play();
+      }
+    },
 
     stopRadio() {
       if (this.audio instanceof Audio) {

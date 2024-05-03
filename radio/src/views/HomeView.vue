@@ -1,12 +1,3 @@
-<script setup>
-import { VideoPlayer } from 'vue-hls-video-player';
-
-function processPause(progress) {
-  console.log(progress)
-}
-</script>
-
-
 <template>
   <div class="radio-wrapper">
     <v-container>
@@ -18,7 +9,7 @@ function processPause(progress) {
 
       <v-row>
         <v-col v-for="(radio, index) in filteredRadios" :key="index" cols="12" sm="6" md="4">
-          <v-card class="radio-card">
+          <v-card :class="['radio-card', { 'playing': radio.isPlaying }]">
             <v-row no-gutters>
               <v-col cols="8">
                 <v-card-title>{{ radio.name }}</v-card-title>
@@ -31,27 +22,33 @@ function processPause(progress) {
                     style="position: absolute; bottom: 0; width: 60%; margin-bottom: 30px;">
 
                     <!--Bottone preferiti-->
-                    <v-btn class="mr-2" icon @click="toggleFavorite(radio)" :color="isFavorite(radio) ? 'red' : ''">
-                      <v-icon v-if="isFavorite(radio)" :color="isPlaying(radio) ? 'white' : ''">mdi-heart</v-icon>
+                    <v-btn icon @click="toggleFavorite(radio)" :color="isFavorite(radio) ? 'red' : ''"
+                      style="margin-right: 5px;">
+                      <v-icon v-if="isFavorite(radio)" :color="radio.isPlaying ? 'white' : ''">mdi-heart</v-icon>
                       <v-icon v-else>mdi-heart-outline</v-icon>
                     </v-btn>
 
                     <!--bottone pause-->
-                    <v-btn class="mr-2" icon @click="togglePlayPause(radio)" :color="isPlaying(radio) ? 'blue' : ''">
-                      <v-icon v-if="isPlaying(radio)">mdi-pause</v-icon>
-                      <v-icon v-else>mdi-play</v-icon>
-                    </v-btn>
+                    <!-- Bottone play -->
 
-                    <!--Bottone stop-->
-                    <v-btn icon @click="stopRadio(radio)" :color="isPlaying(radio) ? 'blue' : ''">
+                    <div style="display: inline-block; position: relative;">
+                      <v-btn icon @click="togglePlayPause(radio)" :color="radio.isPlaying ? '' : ''"
+                        style="margin-right: 5px;">
+                        <v-icon>{{ radio.isPlaying ? 'mdi-pause' : 'mdi-play' }}</v-icon>
+                      </v-btn>
+
+                      <!-- GIF accanto al bottone play (solo quando è in riproduzione) -->
+                      <v-img v-if="radio.isPlaying" src="/musica-music.gif" class="d-inline-block"
+                        style="position: absolute; right: -70px; top: 0;" width="100"></v-img>
+                    </div>
+
+                    <!--<v-btn icon @click="stopRadio(radio)" :color="isPlaying(radio) ? 'blue' : ''">
                       <v-icon>mdi-stop</v-icon>
-                    </v-btn>
-
-                    <!--PLAYER PER USARE I FILE M3U8-->
-                    <VideoPlayer type="default" @pause="processPause" :link="radio.url" :progress="30" :isMuted="false"
-                      :isControls="true" class="customClassName" v-if="radio.hls == '1'" />
+                    </v-btn>-->
 
                   </div>
+
+
                 </v-card-text>
               </v-col>
               <v-col cols="4">
@@ -64,31 +61,28 @@ function processPause(progress) {
         </v-col>
       </v-row>
 
-      <!-- Aggiungi il componente VideoPlayer per i file M3U8 -->
-
-
+      <!-- Hidden video player for playing the radio stream -->
+      <video ref="videoPlayer" @ended="stopRadio" style="display: none;"></video>
     </v-container>
   </div>
 </template>
 
 <script>
-import { useDisplay } from 'vuetify';
-//import VideoPlayer from 'vue-hls-video-player';
+import Hls from 'hls.js';
 
 export default {
   name: 'HomeView',
-  components: {
-    //VideoPlayer
-  },
   data() {
     return {
       radios: [],
       filteredRadios: [],
       search: '',
+      currentRadio: null,
+      currentHlsInstance: null,
+      favorites: [],
       audio: null,
       sheet: false,
       selectedRadio: null,
-      favorites: [], // Aggiunto per gestire i preferiti
       videoOptions: {
         controls: true,
         autoplay: false,
@@ -101,37 +95,64 @@ export default {
       fetch('https://nl1.api.radio-browser.info/json/stations/search?limit=100&countrycode=IT&hidebroken=true&order=clickcount&reverse=true')
         .then(response => response.json())
         .then(data => {
-          this.radios = data;
-          this.filteredRadios = data;
+          this.radios = data.map(radio => ({ ...radio, isPlaying: false }));
+          this.filteredRadios = this.radios;
         });
     },
     getFaviconUrl(radio) {
       return radio.favicon || '/image.png';
     },
     playRadio(radio) {
-      this.stopRadio(); // Interrompi la radio attualmente in riproduzione
+      this.stopRadio();
       this.sheet = true;
       this.selectedRadio = radio;
 
-      // Se il formato è M3U8, utilizza il VideoPlayer
-      if (radio.hls === 1) {
-        console.log('Using vue-hls-video-player for M3U8 format');
-        console.log(radio.url);
-        this.audio = null; // Resetta l'elemento audio
+      if (radio.url.endsWith('.m3u8')) {
+        if (Hls.isSupported()) {
+          if (this.currentHlsInstance) {
+            this.currentHlsInstance.destroy();
+          }
+          const hls = new Hls();
+          hls.loadSource(radio.url);
+          hls.attachMedia(this.$refs.videoPlayer);
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            this.$refs.videoPlayer.play();
+            this.$refs.videoPlayer.classList.add('playing');
+            radio.isPlaying = true;
+          });
+          this.currentHlsInstance = hls;
+        } else if (this.$refs.videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
+          this.$refs.videoPlayer.src = radio.url;
+          this.$refs.videoPlayer.play();
+          this.$refs.videoPlayer.classList.add('playing');
+          radio.isPlaying = true;
+        }
       } else {
-        console.log('Using <audio> element for MP3 format');
-        this.audio = new Audio(radio.url_resolved); // Crea un nuovo elemento audio
-        this.audio.play();
+        this.$refs.videoPlayer.src = radio.url;
+        this.$refs.videoPlayer.play();
+        this.$refs.videoPlayer.classList.add('playing');
+        radio.isPlaying = true;
       }
+      this.currentRadio = radio.url;
+    },
+    stopRadio() {
+      const video = this.$refs.videoPlayer;
+      video.pause();
+      video.src = '';
+      if (this.currentHlsInstance) {
+        this.currentHlsInstance.detachMedia();
+        this.currentHlsInstance.destroy();
+        this.currentHlsInstance = null;
+      }
+      if (this.selectedRadio) {
+        this.selectedRadio.isPlaying = false;
+      }
+      this.currentRadio = null;
+      this.sheet = false;
+      this.selectedRadio = null; // Imposta selectedRadio a null quando si ferma la radio
+      this.$refs.videoPlayer.classList.remove('playing');
     },
 
-    stopRadio() {
-      if (this.audio instanceof Audio) {
-        this.audio.pause();
-        this.audio = null; // Resetta l'elemento audio
-      }
-      this.sheet = false;
-    },
     filterRadios() {
       if (!this.search) {
         this.filteredRadios = this.radios;
@@ -139,16 +160,29 @@ export default {
       }
       this.filteredRadios = this.radios.filter(radio => radio.name.toLowerCase().includes(this.search.toLowerCase()));
     },
+
     togglePlayPause(radio) {
-      if (this.isPlaying(radio)) {
+      if (radio.isPlaying) {
         this.stopRadio();
       } else {
         this.playRadio(radio);
+
+        // Aggiungi un listener per l'evento 'timeupdate' per controllare continuamente lo stato della riproduzione
+        this.$refs.videoPlayer.addEventListener('timeupdate', () => {
+          if (!radio.isPlaying) {
+            this.$refs.videoPlayer.classList.remove('playing');
+            radio.isPlaying = false;
+          }
+        });
+
+        // Aggiungi un ascoltatore per l'evento 'ended' per rimuovere la classe 'playing' quando la riproduzione è terminata
+        this.$refs.videoPlayer.addEventListener('ended', () => {
+          this.$refs.videoPlayer.classList.remove('playing');
+          radio.isPlaying = false;
+        }, { once: true }); // Rimuove l'ascoltatore dopo il primo evento 'ended'
       }
     },
-    isPlaying(radio) {
-      return this.selectedRadio === radio && this.audio && !this.audio.paused;
-    },
+
     toggleFavorite(radio) {
       const index = this.favorites.findIndex(fav => fav.url === radio.url);
       if (index !== -1) {
@@ -167,16 +201,11 @@ export default {
     const favorites = localStorage.getItem('favorites');
     this.favorites = favorites ? JSON.parse(favorites) : [];
   },
-  setup() {
-    const display = useDisplay();
-    return { display };
-  }
 }
 </script>
 
 <style>
 body {
-  /*background-color: #1B3659;*/
   background-color: #1B3659;
 }
 

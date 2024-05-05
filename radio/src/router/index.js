@@ -15,7 +15,7 @@ const routes = [
     component: AboutView // Cambia il componente qui
   },
   {
-    path: '/Maps', // Cambia il percorso in base al tuo bisogno
+    path: '/Maps/:state', // Cambia il percorso in base al tuo bisogno
     name: 'Maps',
     component: MapsView // Cambia il componente qui
   },

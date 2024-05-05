@@ -43,11 +43,12 @@
                         style="position: absolute; right: -70px; top: 0;" width="100"></v-img>
                     </div>
 
-                    <v-btn icon class="google-maps-btn" @click="openGoogleMaps"
+                    <v-btn icon class="google-maps-btn" @click="Mappamondo(radio)"
                       style="margin-right: 5px;">
                       <v-icon>mdi-map</v-icon>
                     </v-btn>
 
+                    
                     <!--<v-btn icon @click="stopRadio(radio)" :color="isPlaying(radio) ? 'blue' : ''">
                       <v-icon>mdi-stop</v-icon>
                     </v-btn>-->
@@ -109,6 +110,22 @@ export default {
     getFaviconUrl(radio) {
       return radio.favicon || '/image.png';
     },
+
+    Mappamondo(radio) {
+  // Verifica se lo stato della radio è definito
+  if (radio && radio.state) {
+    // Recupera lo stato dalla radio
+    console.log('Radio:', radio);
+    const state = radio.state;
+
+    // Naviga alla vista delle mappe e passa lo stato come parametro
+    this.$router.push({ name: 'Maps', params: { state: state } });
+  } else {
+    console.error('Stato della radio non definito.');
+  }
+},
+
+
     playRadio(radio) {
       this.stopRadio();
       this.sheet = true;

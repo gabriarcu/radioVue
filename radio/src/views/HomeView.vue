@@ -21,6 +21,7 @@
                   <div class="text-center align-end"
                     style="position: absolute; bottom: 0; width: 60%; margin-bottom: 30px;">
 
+
                     <!--Bottone preferiti-->
                     <v-btn icon @click="toggleFavorite(radio)" :color="isFavorite(radio) ? 'red' : ''"
                       style="margin-right: 5px;">
@@ -41,6 +42,11 @@
                       <v-img v-if="radio.isPlaying" src="/musica-music.gif" class="d-inline-block"
                         style="position: absolute; right: -70px; top: 0;" width="100"></v-img>
                     </div>
+
+                    <v-btn icon class="google-maps-btn" @click="openGoogleMaps"
+                      style="margin-right: 5px;">
+                      <v-icon>mdi-map</v-icon>
+                    </v-btn>
 
                     <!--<v-btn icon @click="stopRadio(radio)" :color="isPlaying(radio) ? 'blue' : ''">
                       <v-icon>mdi-stop</v-icon>
@@ -68,6 +74,7 @@
 </template>
 
 <script>
+//import axios from 'axios';
 import Hls from 'hls.js';
 
 export default {
@@ -87,7 +94,7 @@ export default {
         controls: true,
         autoplay: false,
         muted: false,
-      },
+      }, // New property to store Shazam events
     }
   },
   methods: {
@@ -196,6 +203,9 @@ export default {
       return this.favorites.some(fav => fav.url === radio.url);
     },
   },
+
+
+
   created() {
     this.getRadios();
     const favorites = localStorage.getItem('favorites');
@@ -212,7 +222,6 @@ body {
 .radio-wrapper {
   margin-right: 5%;
   margin-left: 5%;
-  background-color: rgb(3, 162, 202);
   border-radius: 20px;
 }
 
@@ -224,7 +233,7 @@ body {
 }
 
 .v-text-field:hover {
-  animation: none;
+  animation: alternate-reverse;
 }
 
 .radio-card {

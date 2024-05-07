@@ -3,14 +3,19 @@
     <!-- Altri contenuti come il mappamondo -->
 
     <!-- Finestra modale -->
-    <div class="modal-wrapper" v-if="selectedRadio">
-      <div class="modal-content">
+    <div class="modal-wrapper" v-if="selectedRadio" @click="closeModal">
+      <div class="modal-content" @click.stop>
         <h2>{{ selectedRadio.name }}</h2>
-        <!-- Altri dettagli della radio -->
+        <!-- Aggiunta del pulsante di riproduzione/pausa -->
+        <v-btn icon @click="toggleRadio" :color="audio.paused ? '' : ''" style="margin-right: 5px;">
+  <v-icon>{{ audio.paused ? 'mdi-play' : 'mdi-pause' }}</v-icon>
+</v-btn>
+
       </div>
     </div>
   </div>
 </template>
+
 
 <script>
 import * as THREE from 'three';
@@ -27,7 +32,7 @@ export default {
       raycaster: new THREE.Raycaster(),
       mouse: new THREE.Vector2(),
       markers: [], // Array to store marker meshes
-      audio: null, // Audio element for radio playback
+      audio: new Audio(), // Audio element for radio playback
       selectedRadio: null // Data for the selected radio
     };
   },
@@ -36,7 +41,6 @@ export default {
     this.animate();
     this.setupEventListeners();
     this.fetchRadioData();
-    this.audio = new Audio(); // Create new audio element
   },
   beforeUnmount() {
     window.removeEventListener('resize', this.handleWindowResize);
@@ -79,6 +83,9 @@ export default {
       window.addEventListener('resize', this.handleWindowResize);
       this.renderer.domElement.addEventListener('click', this.onCanvasClick);
     },
+
+   
+
     fetchRadioData() {
       fetch('https://nl1.api.radio-browser.info/json/stations/search?limit=100&countrycode=IT&hidebroken=true&order=clickcount&reverse=true')
         .then(response => response.json())
@@ -94,7 +101,7 @@ export default {
           console.error('Error fetching radio station data:', error);
         });
     },
-    addMarker(longitude, latitude, markerSize = 0.00005, data) {
+    addMarker(longitude, latitude, markerSize = 0.02, data) {
       const phi = (90 - latitude) * (Math.PI / 180);
       const theta = (longitude + 180) * (Math.PI / 180);
       const x = -this.earthRadius * Math.sin(phi) * Math.cos(theta);
@@ -138,13 +145,23 @@ export default {
         this.selectedRadio = data; // Set radio details to show modal window
       }
     },
-    playRadio(url) {
-      // Pause playback if already playing
-      this.audio.pause();
-      // Set new audio source
-      this.audio.src = url;
-      // Start playback
+    toggleRadio() {
+  if (this.selectedRadio && this.selectedRadio.url) {
+    if (this.audio.paused) {
+      // Se l'audio è in pausa, carica e avvia la riproduzione dell'URL della radio selezionata
+      this.audio.src = this.selectedRadio.url;
       this.audio.play();
+    } else {
+      // Se l'audio è in riproduzione, mettilo in pausa
+      this.audio.pause();
+    }
+  }
+},
+    closeModal() {
+      // Close the modal window
+      this.selectedRadio = null;
+      // Pause audio when closing modal
+      this.audio.pause();
     },
     animate() {
       requestAnimationFrame(this.animate);

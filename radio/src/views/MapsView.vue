@@ -1,5 +1,15 @@
 <template>
-  <div ref="container"></div>
+  <div ref="container">
+    <!-- Altri contenuti come il mappamondo -->
+
+    <!-- Finestra modale -->
+    <div class="modal-wrapper" v-if="selectedRadio">
+      <div class="modal-content">
+        <h2>{{ selectedRadio.name }}</h2>
+        <!-- Altri dettagli della radio -->
+      </div>
+    </div>
+  </div>
 </template>
 
 <script>
@@ -17,7 +27,8 @@ export default {
       raycaster: new THREE.Raycaster(),
       mouse: new THREE.Vector2(),
       markers: [], // Array to store marker meshes
-      audio: null // Audio element for radio playback
+      audio: null, // Audio element for radio playback
+      selectedRadio: null // Data for the selected radio
     };
   },
   mounted() {
@@ -83,7 +94,7 @@ export default {
           console.error('Error fetching radio station data:', error);
         });
     },
-    addMarker(longitude, latitude, markerSize = 0.05, data) {
+    addMarker(longitude, latitude, markerSize = 0.00005, data) {
       const phi = (90 - latitude) * (Math.PI / 180);
       const theta = (longitude + 180) * (Math.PI / 180);
       const x = -this.earthRadius * Math.sin(phi) * Math.cos(theta);
@@ -91,12 +102,20 @@ export default {
       const z = this.earthRadius * Math.sin(phi) * Math.sin(theta);
 
       const geometry = new THREE.SphereGeometry(markerSize, 32, 32);
-      const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+      const material = new THREE.MeshBasicMaterial({ color: 0xffffff }); // Set initial color to white
       const marker = new THREE.Mesh(geometry, material);
       marker.position.set(x, y, z);
 
       // Attach data to marker object
       marker.userData = { longitude, latitude, data };
+
+      // Add event listeners for hover effects
+      marker.onmouseenter = () => {
+        marker.material.color.set(0xff0000); // Change color to red on hover
+      };
+      marker.onmouseleave = () => {
+        marker.material.color.set(0xffffff); // Reset color to white when not hovered
+      };
 
       this.markers.push(marker);
       this.scene.add(marker);
@@ -106,7 +125,7 @@ export default {
       this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
       this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-      // Update the picking ray with the camera and mouse position
+      // Update the raycaster with the camera and mouse position
       this.raycaster.setFromCamera(this.mouse, this.camera);
 
       // Calculate objects intersecting the picking ray
@@ -116,17 +135,15 @@ export default {
         // Handle marker click
         const marker = intersects[0].object;
         const data = marker.userData.data;
-        console.log('Marker clicked:', data);
-        // Avvia la riproduzione della stazione radio associata al marker
-        this.playRadio(data.url);
+        this.selectedRadio = data; // Set radio details to show modal window
       }
     },
     playRadio(url) {
-      // Interrompi la riproduzione se già in corso
+      // Pause playback if already playing
       this.audio.pause();
-      // Imposta la nuova sorgente audio
+      // Set new audio source
       this.audio.src = url;
-      // Avvia la riproduzione
+      // Start playback
       this.audio.play();
     },
     animate() {
@@ -148,3 +165,24 @@ export default {
   }
 };
 </script>
+
+<style>
+/* Modal style */
+.modal-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* Slightly transparent dark background */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+}
+</style>

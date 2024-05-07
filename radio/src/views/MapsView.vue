@@ -115,32 +115,42 @@ export default {
           console.error('Error fetching radio station data:', error);
         });
     },
+    
     addMarker(longitude, latitude, markerSize = 0.02, data) {
-      const phi = (90 - latitude) * (Math.PI / 180);
-      const theta = (longitude + 180) * (Math.PI / 180);
-      const x = -this.earthRadius * Math.sin(phi) * Math.cos(theta);
-      const y = this.earthRadius * Math.cos(phi);
-      const z = this.earthRadius * Math.sin(phi) * Math.sin(theta);
+  // Converti le coordinate in radianti
+  const phi = (90 - latitude) * (Math.PI / 180);
+  const theta = (longitude + 180) * (Math.PI / 180);
 
-      const geometry = new THREE.SphereGeometry(markerSize, 32, 32);
-      const material = new THREE.MeshBasicMaterial({ color: 0xffffff }); // Set initial color to white
-      const marker = new THREE.Mesh(geometry, material);
-      marker.position.set(x, y, z);
+  // Calcola la posizione del marker sulla sfera della Terra con un offset verticale
+  const radius = this.earthRadius; // Utilizza direttamente il raggio della Terra
+  const offset = 0.01; // Offset verticale per spostare il marker sopra la superficie
+  const x = -radius * Math.sin(phi) * Math.cos(theta);
+  const y = (radius + offset) * Math.cos(phi); // Aggiungi l'offset verticale
+  const z = radius * Math.sin(phi) * Math.sin(theta);
 
-      // Attach data to marker object
-      marker.userData = { longitude, latitude, data };
+  // Crea il marker come pallino
+  const geometry = new THREE.SphereGeometry(markerSize, 32, 32);
+  const material = new THREE.MeshBasicMaterial({ color: 0xffffff }); // Colore bianco di default
+  const marker = new THREE.Mesh(geometry, material);
+  marker.position.set(x, y, z); // Imposta la posizione del marker sulla sfera
 
-      // Add event listeners for hover effects
-      marker.onmouseenter = () => {
-        marker.material.color.set(0xff0000); // Change color to red on hover
-      };
-      marker.onmouseleave = () => {
-        marker.material.color.set(0xffffff); // Reset color to white when not hovered
-      };
+  // Allega i dati del marker
+  marker.userData = { longitude, latitude, data };
 
-      this.markers.push(marker);
-      this.scene.add(marker);
-    },
+  // Aggiungi eventi per effetti di hover
+  marker.onmouseenter = () => {
+    marker.material.color.set(0xff0000); // Cambia il colore in rosso quando si passa sopra
+  };
+  marker.onmouseleave = () => {
+    marker.material.color.set(0xffffff); // Ripristina il colore bianco quando non si passa sopra
+  };
+
+  // Aggiungi il marker alla scena
+  this.markers.push(marker);
+  this.scene.add(marker);
+},
+
+    
     onCanvasClick(event) {
       // Calculate mouse position in normalized device coordinates
       this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;

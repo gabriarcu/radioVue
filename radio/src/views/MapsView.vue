@@ -7,8 +7,9 @@
       <div class="modal-content" @click.stop>
         <h2>{{ selectedRadio.name }}</h2>
         <!-- Aggiunta del pulsante di riproduzione/pausa -->
-        <v-btn icon @click="toggleRadio" :color="audio.paused ? '' : ''" style="margin-right: 5px;">
-  <v-icon>{{ audio.paused ? 'mdi-play' : 'mdi-pause' }}</v-icon>
+        <v-btn icon @click="toggleRadio" :color="audioPlaying ? '' : ''" style="margin-right: 5px;">
+  <v-icon>{{ audioPlaying ? 'mdi-pause' : 'mdi-play' }}</v-icon>
+
 </v-btn>
 
       </div>
@@ -25,6 +26,7 @@ export default {
   name: 'ThreeJsScene',
   data() {
     return {
+      audioPlaying: false,
       camera: null,
       renderer: null,
       controls: null,
@@ -41,11 +43,23 @@ export default {
     this.animate();
     this.setupEventListeners();
     this.fetchRadioData();
+    this.audio.addEventListener('play', this.handleAudioPlay);
+    this.audio.addEventListener('pause', this.handleAudioPause);
   },
   beforeUnmount() {
     window.removeEventListener('resize', this.handleWindowResize);
+    this.audio.removeEventListener('play', this.handleAudioPlay);
+    this.audio.removeEventListener('pause', this.handleAudioPause);
   },
   methods: {
+    handleAudioPlay() {
+    // Quando l'audio inizia a riprodursi, aggiorna lo stato dell'audio e l'icona del pulsante
+    this.audioPlaying = true;
+  },
+  handleAudioPause() {
+    // Quando l'audio viene messo in pausa, aggiorna lo stato dell'audio e l'icona del pulsante
+    this.audioPlaying = false;
+  },
     init() {
       // Create a camera
       this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);

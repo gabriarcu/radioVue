@@ -1,3 +1,5 @@
+<!--API KEY shazam: 6c4c521ea9msh549c70e295e1788p1fb984jsn02df68288596-->
+
 <template>
   <div class="radio-wrapper">
     <v-container>
@@ -78,6 +80,7 @@
 //import axios from 'axios';
 import Hls from 'hls.js';
 
+
 export default {
   name: 'HomeView',
   data() {
@@ -111,42 +114,44 @@ export default {
       return radio.favicon || '/image.png';
     },
 
-    
-
-
     playRadio(radio) {
-      this.stopRadio();
-      this.sheet = true;
-      this.selectedRadio = radio;
+  this.stopRadio();
+  this.sheet = true;
+  this.selectedRadio = radio;
 
-      if (radio.url.endsWith('.m3u8')) {
-        if (Hls.isSupported()) {
-          if (this.currentHlsInstance) {
-            this.currentHlsInstance.destroy();
-          }
-          const hls = new Hls();
-          hls.loadSource(radio.url);
-          hls.attachMedia(this.$refs.videoPlayer);
-          hls.on(Hls.Events.MANIFEST_PARSED, () => {
-            this.$refs.videoPlayer.play();
-            this.$refs.videoPlayer.classList.add('playing');
-            radio.isPlaying = true;
-          });
-          this.currentHlsInstance = hls;
-        } else if (this.$refs.videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
-          this.$refs.videoPlayer.src = radio.url;
-          this.$refs.videoPlayer.play();
-          this.$refs.videoPlayer.classList.add('playing');
-          radio.isPlaying = true;
-        }
-      } else {
-        this.$refs.videoPlayer.src = radio.url;
+  // Carica e riproduci lo stream audio della radio
+  if (radio.url.endsWith('.m3u8')) {
+    if (Hls.isSupported()) {
+      if (this.currentHlsInstance) {
+        this.currentHlsInstance.destroy();
+      }
+      const hls = new Hls();
+      hls.loadSource(radio.url);
+      hls.attachMedia(this.$refs.videoPlayer);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
         this.$refs.videoPlayer.play();
         this.$refs.videoPlayer.classList.add('playing');
         radio.isPlaying = true;
-      }
-      this.currentRadio = radio.url;
-    },
+        
+      });
+      this.currentHlsInstance = hls;
+    } else if (this.$refs.videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
+      this.$refs.videoPlayer.src = radio.url;
+      this.$refs.videoPlayer.play();
+      this.$refs.videoPlayer.classList.add('playing');
+      radio.isPlaying = true;
+    }
+  } else {
+    this.$refs.videoPlayer.src = radio.url;
+    this.$refs.videoPlayer.play();
+    this.$refs.videoPlayer.classList.add('playing');
+    radio.isPlaying = true;
+  this.currentRadio = radio.url;
+  }
+},
+
+
+
     stopRadio() {
       const video = this.$refs.videoPlayer;
       video.pause();
@@ -208,9 +213,6 @@ export default {
       return this.favorites.some(fav => fav.url === radio.url);
     },
   },
-
-
-
   created() {
     this.getRadios();
     const favorites = localStorage.getItem('favorites');
@@ -233,12 +235,7 @@ body {
 .v-text-field {
   margin-bottom: 20px;
   border-radius: 20px;
-  border: none;
   background-color: white;
-}
-
-.v-text-field:hover {
-  animation: alternate-reverse;
 }
 
 .radio-card {

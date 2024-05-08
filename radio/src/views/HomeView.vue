@@ -110,6 +110,7 @@ export default {
           this.filteredRadios = this.radios;
         });
     },
+    
     getFaviconUrl(radio) {
       return radio.favicon || '/image.png';
     },

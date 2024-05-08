@@ -45,16 +45,6 @@
                         style="position: absolute; right: -70px; top: 0;" width="100"></v-img>
                     </div>
 
-                    <!--<v-btn icon class="google-maps-btn" @click="Mappamondo"
-                      style="margin-right: 5px;">
-                      <v-icon>mdi-map</v-icon>
-                    </v-btn>-->
-
-                    
-                    <!--<v-btn icon @click="stopRadio(radio)" :color="isPlaying(radio) ? 'blue' : ''">
-                      <v-icon>mdi-stop</v-icon>
-                    </v-btn>-->
-
                   </div>
 
 

@@ -8,19 +8,19 @@
         <h2>{{ selectedRadio.name }}</h2>
         <!-- Aggiunta del pulsante di riproduzione/pausa -->
         <v-btn icon @click="toggleRadio" :color="audioPlaying ? '' : ''" style="margin-right: 5px;">
-  <v-icon>{{ audioPlaying ? 'mdi-pause' : 'mdi-play' }}</v-icon>
-
-</v-btn>
-
+          <v-icon>{{ audioPlaying ? 'mdi-pause' : 'mdi-play' }}</v-icon>
+        </v-btn>
+        <!-- Nome della canzone -->
+        <p v-if="currentSong" class="song-name">{{ currentSong }}</p>
       </div>
     </div>
   </div>
 </template>
 
-
 <script>
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import $ from 'jquery';
 
 export default {
   name: 'ThreeJsScene',
@@ -35,9 +35,11 @@ export default {
       mouse: new THREE.Vector2(),
       markers: [], // Array to store marker meshes
       audio: new Audio(), // Audio element for radio playback
-      selectedRadio: null // Data for the selected radio
+      selectedRadio: null, // Data for the selected radio
+      currentSong: null // Add currentSong property
     };
   },
+
   mounted() {
     this.init();
     this.animate();
@@ -53,42 +55,33 @@ export default {
   },
   methods: {
     handleAudioPlay() {
-    // Quando l'audio inizia a riprodursi, aggiorna lo stato dell'audio e l'icona del pulsante
-    this.audioPlaying = true;
-  },
-  handleAudioPause() {
-    // Quando l'audio viene messo in pausa, aggiorna lo stato dell'audio e l'icona del pulsante
-    this.audioPlaying = false;
-  },
+      this.audioPlaying = true;
+    },
+    handleAudioPause() {
+      this.audioPlaying = false;
+    },
     init() {
-      // Create a camera
       this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
       this.camera.position.z = 5;
 
-      // Create a renderer
       this.renderer = new THREE.WebGLRenderer();
       this.renderer.setSize(window.innerWidth, window.innerHeight);
       this.$refs.container.appendChild(this.renderer.domElement);
 
-      // Add OrbitControls
       this.controls = new OrbitControls(this.camera, this.renderer.domElement);
       this.controls.enableDamping = true;
 
-      // Create a scene
       this.scene = new THREE.Scene();
 
-      // Create a more accurate Earth model
-      const geometry = new THREE.SphereGeometry(this.earthRadius, 64, 64); // Increase segments for smoother surface
+      const geometry = new THREE.SphereGeometry(this.earthRadius, 64, 64);
       const texture = new THREE.TextureLoader().load(`${process.env.BASE_URL}8k_earth_daymap.jpg`);
       const material = new THREE.MeshPhongMaterial({ map: texture });
       const earth = new THREE.Mesh(geometry, material);
       this.scene.add(earth);
 
-      // Add ambient light
       const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
       this.scene.add(ambientLight);
 
-      // Add directional light
       const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
       directionalLight.position.set(1, 1, 1).normalize();
       this.scene.add(directionalLight);
@@ -97,9 +90,6 @@ export default {
       window.addEventListener('resize', this.handleWindowResize);
       this.renderer.domElement.addEventListener('click', this.onCanvasClick);
     },
-
-   
-
     fetchRadioData() {
       fetch('https://nl1.api.radio-browser.info/json/stations/search?limit=100&countrycode=IT&hidebroken=true&order=clickcount&reverse=true')
         .then(response => response.json())
@@ -108,83 +98,119 @@ export default {
           italianRadioStations.forEach(station => {
             const longitude = station.geo_long;
             const latitude = station.geo_lat;
-            this.addMarker(longitude, latitude, 0.01, station); // Adjust marker size as needed
+            this.addMarker(longitude, latitude, 0.01, station);
           });
         })
         .catch(error => {
           console.error('Error fetching radio station data:', error);
         });
     },
-    
     addMarker(longitude, latitude, markerSize = 0.02, data) {
-  // Converti le coordinate in radianti
-  const phi = (90 - latitude) * (Math.PI / 180);
-  const theta = (longitude + 180) * (Math.PI / 180);
+      const phi = (90 - latitude) * (Math.PI / 180);
+      const theta = (longitude + 180) * (Math.PI / 180);
 
-  // Calcola la posizione del marker sulla sfera della Terra con un offset verticale
-  const radius = this.earthRadius; // Utilizza direttamente il raggio della Terra
-  const offset = 0.01; // Offset verticale per spostare il marker sopra la superficie
-  const x = -radius * Math.sin(phi) * Math.cos(theta);
-  const y = (radius + offset) * Math.cos(phi); // Aggiungi l'offset verticale
-  const z = radius * Math.sin(phi) * Math.sin(theta);
+      const radius = this.earthRadius;
+      const offset = 0.01;
+      const x = -radius * Math.sin(phi) * Math.cos(theta);
+      const y = (radius + offset) * Math.cos(phi);
+      const z = radius * Math.sin(phi) * Math.sin(theta);
 
-  // Crea il marker come pallino
-  const geometry = new THREE.SphereGeometry(markerSize, 32, 32);
-  const material = new THREE.MeshBasicMaterial({ color: 0xffffff }); // Colore bianco di default
-  const marker = new THREE.Mesh(geometry, material);
-  marker.position.set(x, y, z); // Imposta la posizione del marker sulla sfera
+      const geometry = new THREE.SphereGeometry(markerSize, 32, 32);
+      const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      const marker = new THREE.Mesh(geometry, material);
+      marker.position.set(x, y, z);
 
-  // Allega i dati del marker
-  marker.userData = { longitude, latitude, data };
+      marker.userData = { longitude, latitude, data };
 
-  // Aggiungi eventi per effetti di hover
-  marker.onmouseenter = () => {
-    marker.material.color.set(0xff0000); // Cambia il colore in rosso quando si passa sopra
-  };
-  marker.onmouseleave = () => {
-    marker.material.color.set(0xffffff); // Ripristina il colore bianco quando non si passa sopra
-  };
+      marker.onmouseenter = () => {
+        marker.material.color.set(0xff0000);
+      };
+      marker.onmouseleave = () => {
+        marker.material.color.set(0xffffff);
+      };
 
-  // Aggiungi il marker alla scena
-  this.markers.push(marker);
-  this.scene.add(marker);
-},
-
-    
+      this.markers.push(marker);
+      this.scene.add(marker);
+    },
     onCanvasClick(event) {
-      // Calculate mouse position in normalized device coordinates
       this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
       this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-      // Update the raycaster with the camera and mouse position
       this.raycaster.setFromCamera(this.mouse, this.camera);
 
-      // Calculate objects intersecting the picking ray
       const intersects = this.raycaster.intersectObjects(this.markers);
 
       if (intersects.length > 0) {
-        // Handle marker click
         const marker = intersects[0].object;
         const data = marker.userData.data;
-        this.selectedRadio = data; // Set radio details to show modal window
+        this.selectedRadio = data;
+
+        this.toggleRadio();
+      }
+    },
+    parseAudioUrlFromHtml(html) {
+      const audioUrlRegex = /<audio[^>]*src=['"](.*?)['"][^>]*>/;
+      const match = html.match(audioUrlRegex);
+      if (match) {
+        return match[1];
+      } else {
+        throw new Error('Audio URL not found in HTML');
       }
     },
     toggleRadio() {
-  if (this.selectedRadio && this.selectedRadio.url) {
-    if (this.audio.paused) {
-      // Se l'audio è in pausa, carica e avvia la riproduzione dell'URL della radio selezionata
-      this.audio.src = this.selectedRadio.url;
-      this.audio.play();
-    } else {
-      // Se l'audio è in riproduzione, mettilo in pausa
-      this.audio.pause();
-    }
-  }
-},
+      if (this.selectedRadio && this.selectedRadio.url) {
+        if (this.audio.paused) {
+          this.audio.src = this.selectedRadio.url;
+          this.audio.play();
+
+          this.getRadioAudioUrl(this.selectedRadio.url)
+            .then(audioUrl => {
+              this.identifySong(audioUrl);
+            })
+            .catch(error => {
+              console.error('Error fetching radio audio URL:', error);
+            });
+        } else {
+          this.audio.pause();
+        }
+      }
+    },
+    getRadioAudioUrl(radioUrl) {
+      return fetch(radioUrl)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.text();
+        })
+        .then(html => {
+          const audioUrl = this.parseAudioUrlFromHtml(html);
+          return audioUrl;
+        });
+    },
+    identifySong(audioUrl) {
+      const data = {
+        'url': audioUrl,
+        'return': 'apple_music,spotify',
+        'api_token': 'test'
+      };
+
+      $.getJSON('https://api.audd.io/?jsonp=?', data)
+        .done((result) => {
+          console.log(result);
+          if (result && result.title) {
+            this.currentSong = result.result.title;
+          } else {
+            this.currentSong = "Canzone sconosciuta";
+          }
+        })
+        .fail((error) => {
+          console.error('Error identifying song:', error);
+          this.currentSong = "Errore nell'identificazione della canzone";
+        });
+    },
     closeModal() {
-      // Close the modal window
       this.selectedRadio = null;
-      // Pause audio when closing modal
       this.audio.pause();
     },
     animate() {

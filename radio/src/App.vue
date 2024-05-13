@@ -1,19 +1,21 @@
+
+import { RouterLink } from 'vue-router';
 <template>
   <nav>
     <router-link to="/">Home</router-link> |
-    <router-link to="/about">About</router-link> |
-    <router-link to="/contatti">Contatti</router-link>
+    <router-link to="/about">Preferiti🌟</router-link> |
+    <router-link to="/Maps">Mappa</router-link>
   </nav>
   <router-view/>
 </template>
 
 <style>
 #app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
-  color: #2c3e50;
+  color: rgb(3, 162, 202);
 }
 
 nav {
@@ -22,10 +24,11 @@ nav {
 
 nav a {
   font-weight: bold;
-  color: #2c3e50;
+  color: white;
+;
 }
 
 nav a.router-link-exact-active {
-  color: #42b983;
+  color: rgb(3, 162, 202);
 }
 </style>

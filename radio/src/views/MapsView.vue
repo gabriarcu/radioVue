@@ -1,3 +1,4 @@
+<!--api key audd = 7d6ffb671943282ec18692ea08ea82f7-->
 <template>
   <div ref="container">
     <!-- Altri contenuti come il mappamondo -->
